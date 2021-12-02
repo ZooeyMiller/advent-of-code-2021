@@ -8,6 +8,7 @@ main = do
   let finalPositionWithAim = foldl (\x y -> updatePositionWithAim y x) initialPositionWithAim values
   putStrLn $ show $ finalPositionWithAim
   putStrLn $ show $ getPositionWithAimRes finalPositionWithAim
+  putStrLn $ show $ getPositionWithAimRes finalPositionWithAim == 1727785422
 
 -- from 1st part
 data Direction
@@ -49,12 +50,19 @@ data PositionWithAim = PositionWithAim Horizontal Depth Aim deriving (Show, Eq)
 initialPositionWithAim = PositionWithAim (Horizontal 0) (Depth 0) (Aim 0)
 
 updatePositionWithAim :: Direction -> PositionWithAim -> PositionWithAim
-updatePositionWithAim (Up x) (PositionWithAim a b (Aim c)) =
-  PositionWithAim a b (Aim $ c - x)
-updatePositionWithAim (Down x) (PositionWithAim a b (Aim c)) =
-  PositionWithAim a b (Aim $ c + x)
 updatePositionWithAim (Forward x) (PositionWithAim (Horizontal a) (Depth b) (Aim c)) =
-  PositionWithAim (Horizontal $ a + x) (Depth $ b + (x * c)) (Aim c)
+  PositionWithAim horizontalRes depthRes (Aim c)
+  where
+    horizontalRes = Horizontal $ a + x
+    depthRes = Depth $ b + (x * c)
+updatePositionWithAim a b = updateAim a b -- point free not working?
+
+updateAim :: Direction -> PositionWithAim -> PositionWithAim
+updateAim (Up x) (PositionWithAim a b (Aim c)) =
+  PositionWithAim a b (Aim $ c - x)
+updateAim (Down x) (PositionWithAim a b (Aim c)) =
+  PositionWithAim a b (Aim $ c + x)
+updateAim _ res = res
 
 getPositionWithAimRes :: PositionWithAim -> Int
 getPositionWithAimRes (PositionWithAim (Horizontal x) (Depth y) _) = x * y
