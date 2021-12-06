@@ -5,13 +5,11 @@ import Data.List
 import Data.Set (fromList, toList)
 
 main = do
-  let y = ((fmap getLeastFrequent) <$> grouped) >>= sequence
-      x = ((fmap getMostFrequent) <$> grouped) >>= sequence
-  putStrLn $ show $ x
-  putStrLn $ show $ y
-  let y' = toDecimal <$> y
-      x' = toDecimal <$> x
-  putStrLn $ show $ liftA2 (*) y' x'
+  let res' = solvePartOne values
+  putStrLn $ show $ res'
+  putStrLn $ show $ res' == Just 775304
+  let res2 = solvePartTwo sampleValues
+  putStrLn $ show $ res2
 
 getColumn :: [[a]] -> Int -> Maybe [a]
 getColumn xs y
@@ -25,11 +23,24 @@ getAllColumns xs y = sequence $ go xs [] 0
       | z > y = res
       | otherwise = go ys (res ++ [getColumn ys z]) (z + 1)
 
+getFrequency :: (([a] -> [b] -> Ordering) -> [c] -> [d]) -> [c] -> Maybe d
 getFrequency _ [] = Nothing
 getFrequency f xs = safeHead $ f (\x y -> compare (length x) (length y)) xs
 
+data BigSmall = Max | Min deriving (Eq)
+
+compareWithDefault :: [a] -> [a] -> a -> BigSmall -> Maybe a
+compareWithDefault x y def bs = case compare (length x) (length y) of
+  EQ -> Just def
+  GT -> safeHead (if bs == Max then x else y)
+  LT -> safeHead y
+
+-- I need a way to get the end result being 1 in the case of EQ
+
+getMostFrequent :: [[a]] -> Maybe a
 getMostFrequent = getFrequency maximumBy
 
+getLeastFrequent :: [[a]] -> Maybe a
 getLeastFrequent = getFrequency minimumBy
 
 groupElements :: Ord a => [a] -> [[a]]
@@ -41,21 +52,39 @@ removeDuplicates = toList . fromList
 toDecimal :: String -> Int
 toDecimal = foldl' (\acc x -> acc * 2 + digitToInt x) 0
 
-unpack :: Maybe [a] -> Maybe a
-unpack x = x >>= safeHead
-
 safeHead :: [a] -> Maybe a
 safeHead x
   | length x > 0 = Just $ head x
   | otherwise = Nothing
 
-grouped = (fmap groupElements) <$> getAllColumns values 11
+solvePartOne :: [String] -> Maybe Int
+solvePartOne xs = res
+  where
+    grouped = (fmap groupElements) <$> getAllColumns xs 11
+    most = doThingWithDecimal getMostFrequent grouped
+    least = doThingWithDecimal getLeastFrequent grouped
+    res = liftA2 (*) most least
 
-mostFreq = grouped >>= getMostFrequent
+-- naming is hard
+doThing :: (a -> Maybe Char) -> Maybe [a] -> Maybe String
+doThing g' xs = binaryRes
+  where
+    binaryRes = ((fmap g') <$> xs) >>= sequence
 
-leastFreq = grouped >>= getLeastFrequent
+doThingWithDecimal a b = toDecimal <$> doThing a b
 
-x = [["00000", "1111111"], ["0000000", "11111"], ["0000", "11111111"], ["00000", "1111111"], ["0000000", "11111"]]
+solvePartTwo xs = res
+  where
+    grouped = (fmap groupElements) <$> getAllColumns xs 4
+    most = maybe [] id $ doThing getMostFrequent grouped
+    least = maybe [] id $ doThing getLeastFrequent grouped
+    res = getMatchingElements most xs 0
+
+getMatchingElements matcher list index
+  | length list == 1 = head list
+  | otherwise = getMatchingElements matcher (filter match list) (index + 1)
+  where
+    match x = (x !! index) == (matcher !! index)
 
 sampleValues =
   [ "00100",
