@@ -1,3 +1,5 @@
+{-# LANGUAGE TupleSections #-}
+
 import Control.Monad
 import Data.List
 
@@ -6,6 +8,7 @@ main = do
       fullPath = "./inputs/Day4.txt"
   (numbers, boards) <- parseInput fullPath
   print $ solvePartOne numbers boards
+  print $ solvePartTwo numbers boards
 
 parseInput path = do
   file <- readFile path
@@ -56,6 +59,17 @@ getFirstWinningBoard (str : strs) boards = next
       Nothing -> getFirstWinningBoard strs rest
 getFirstWinningBoard [] _ = Nothing
 
+getLastWinningBoard :: [String] -> [Board] -> Maybe (String, Board)
+getLastWinningBoard strs boards = go strs boards Nothing
+  where
+    go [] boards res = res
+    go _ [] res = res
+    go (str : strs) boards recentWinner = go strs noWinners next
+      where
+        (rest, res) = markAndCheckAll str boards
+        next = fmap (str,) res
+        noWinners = filter (not . boardWins) rest
+
 getResFromBoard :: String -> Board -> Int
 getResFromBoard str (Board board) = read str * sum numbers
   where
@@ -67,4 +81,10 @@ solvePartOne :: [String] -> [Board] -> Maybe Int
 solvePartOne strs boards = res
   where
     winner = getFirstWinningBoard strs boards
+    res = fmap (uncurry getResFromBoard) winner
+
+solvePartTwo :: [String] -> [Board] -> Maybe Int
+solvePartTwo strs boards = res
+  where
+    winner = getLastWinningBoard strs boards
     res = fmap (uncurry getResFromBoard) winner
